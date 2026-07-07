@@ -1,0 +1,86 @@
+services:
+  - type: web
+    name: jedida-api
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    # runs all schema*.sql migrations (idempotent — safe to run on every
+    # deploy since each file only CREATEs what doesn't already exist for
+    # phase2+ tables, and the base schema.sql is only ever applied once)
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PGHOST
+        fromDatabase:
+          name: jedida-db
+          property: host
+      - key: PGPORT
+        fromDatabase:
+          name: jedida-db
+          property: port
+      - key: PGUSER
+        fromDatabase:
+          name: jedida-db
+          property: user
+      - key: PGPASSWORD
+        fromDatabase:
+          name: jedida-db
+          property: password
+      - key: PGDATABASE
+        fromDatabase:
+          name: jedida-db
+          property: database
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        sync: false   # set manually to your Netlify/Vercel URL after first deploy
+      - key: PUBLIC_API_URL
+        sync: false   # set manually to this service's Render URL after first deploy
+      - key: UPGRADE_VERIFICATION_FEE
+        value: "1000"
+      - key: UPGRADE_FEE_CURRENCY
+        value: UGX
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_SEARCH_API_KEY
+        sync: false
+      - key: GOOGLE_SEARCH_ENGINE_ID
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: DPO_COMPANY_TOKEN
+        sync: false
+      - key: COINBASE_COMMERCE_API_KEY
+        sync: false
+
+databases:
+  - name: jedida-db
+    plan: starter
+    region: oregon
+    postgresMajorVersion: "16"

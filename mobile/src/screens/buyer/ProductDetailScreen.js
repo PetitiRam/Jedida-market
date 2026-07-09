@@ -3,11 +3,26 @@ import { View, Text, Image, ScrollView } from 'react-native';
 import { ScreenContainer, EmptyState, PrimaryButton, FormField } from '../../components/UI';
 import client from '../../api/client';
 import { colors } from '../../theme';
+import * as commerceApi from '../../api/commerceApi';
+
 
 export default function ProductDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const [product, setProduct] = useState(null);
   const [qty, setQty] = useState('1');
+  const [wishlisted, setWishlisted] = useState(false);
+useEffect(() => {
+  commerceApi.getWishlistStatus(id).then(({ data }) => setWishlisted(data.wishlisted)).catch(() => {});
+}, [id]);
+
+const toggleWishlist = async () => {
+  const { data } = await commerceApi.toggleWishlist(id);
+  setWishlisted(data.wishlisted);
+};
+
+const addToCart = async () => {
+  await commerceApi.addToCart(id, Number(qty) || 1);
+};
 
   useEffect(() => {
     client.get(`/products/${id}`).then(({ data }) => setProduct(data.product));
@@ -35,6 +50,12 @@ export default function ProductDetailScreen({ route, navigation }) {
       </View>
 
       <PrimaryButton title="Buy now" onPress={() => navigation.navigate('Checkout', { productId: product.id, qty: Number(qty) || 1 })} />
+    <View style={{ marginTop: 10 }}>
+  <SecondaryButton title="Add to Cart" onPress={addToCart} />
+</View>
+<View style={{ marginTop: 10 }}>
+  <SecondaryButton title={wishlisted ? 'Saved to Wishlist' : 'Save to Wishlist'} onPress={toggleWishlist} />
+</View>
     </ScreenContainer>
   );
 }

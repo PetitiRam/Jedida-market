@@ -9,44 +9,263 @@ async function getOwnedShopId(userId) {
 // Create a new listing. Runs it through "Nsubuga Joseph" (the listing-polish
 // bot) before it goes to pending_review, then a human admin still approves it.
 export async function createProduct(req, res) {
-  const {
-    title, description, category, condition, price, currency, quantityAvailable,
-    sku, images, videoUrl, specs, locationCity, locationCountry, shippingOptions, templateId
-  } = req.body;
 
-  if (!title || !price) return res.status(400).json({ error: 'Title and price are required.' });
+const {
 
-  try {
-    const shopId = await getOwnedShopId(req.user.id);
-    if (!shopId) return res.status(403).json({ error: 'Open your shop before listing products.' });
+title,
+shortDescription,
+description,
 
-    const polished = await polishListing({ title, description, category, specs });
+category,
+condition,
 
-    const result = await query(
-      `INSERT INTO products (
-         shop_id, template_id, title, description, category, condition, price, currency,
-         quantity_available, sku, images, video_url, specs, location_city, location_country,
-         shipping_options, status, ai_polished, ai_polish_notes
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'pending_review',$17,$18)
-       RETURNING *`,
-      [
-        shopId, templateId || null, polished.title, polished.description, category || 'other',
-        condition || 'new', price, currency || 'USD', quantityAvailable || 1, sku || null,
-        images || [], videoUrl || null, specs || {}, locationCity || null, locationCountry || null,
-        JSON.stringify(shippingOptions || []), true, polished.notes
-      ]
-    );
+brand,
+manufacturer,
+modelNumber,
+sku,
 
-    return res.status(201).json({
-      message: 'Listing created and polished by Nsubuga Joseph. It will appear in the Marketplace once approved.',
-      product: result.rows[0]
-    });
-  } catch (err) {
-    console.error('Create product error:', err);
-    return res.status(500).json({ error: 'Could not create listing.' });
-  }
+price,
+originalPrice,
+discount,
+currency,
+
+quantityAvailable,
+minimumOrderQuantity,
+
+material,
+color,
+size,
+weight,
+dimensions,
+
+warranty,
+countryOfOrigin,
+
+warehouseLocation,
+deliveryTime,
+shippingCost,
+
+locationCity,
+locationCountry,
+
+features,
+packageContents,
+
+keywords,
+metaTitle,
+metaDescription,
+
+media,
+images,
+
+status
+
+} = req.body;
+
+
+if (!title || !price) {
+return res.status(400).json({
+error:'Title and price are required.'
+});
 }
 
+
+try {
+
+
+const shopId = await getOwnedShopId(req.user.id);
+
+
+if(!shopId){
+
+return res.status(403).json({
+error:'Open your shop before listing products.'
+});
+
+}
+
+
+
+const polished = await polishListing({
+
+title,
+description,
+category
+
+});
+
+
+
+const result = await query(
+`
+INSERT INTO products (
+
+shop_id,
+
+title,
+short_description,
+description,
+
+category,
+condition,
+
+brand,
+manufacturer,
+model_number,
+sku,
+
+price,
+original_price,
+discount,
+currency,
+
+quantity_available,
+minimum_order_quantity,
+
+images,
+
+specs,
+
+location_city,
+location_country,
+
+shipping_options,
+
+status,
+
+ai_polished,
+ai_polish_notes
+
+)
+
+VALUES (
+
+$1,$2,$3,$4,
+
+$5,$6,
+
+$7,$8,$9,$10,
+
+$11,$12,$13,$14,
+
+$15,$16,
+
+$17,
+
+$18,
+
+$19,$20,
+
+$21,
+
+$22,
+
+$23,$24
+
+)
+
+RETURNING *
+`,
+[
+shopId,
+
+polished.title || title,
+shortDescription || null,
+polished.description || description,
+
+category || 'other',
+condition || 'new',
+
+brand || null,
+manufacturer || null,
+modelNumber || null,
+sku || null,
+
+Number(price),
+Number(originalPrice || 0),
+Number(discount || 0),
+currency || 'USD',
+
+Number(quantityAvailable || 1),
+Number(minimumOrderQuantity || 1),
+
+
+images || [],
+
+
+JSON.stringify({
+
+material,
+color,
+size,
+weight,
+dimensions,
+warranty,
+
+features,
+packageContents,
+
+keywords,
+metaTitle,
+metaDescription
+
+}),
+
+
+locationCity || null,
+locationCountry || null,
+
+
+JSON.stringify({
+
+warehouseLocation,
+deliveryTime,
+shippingCost
+
+}),
+
+
+status || 'pending_review',
+
+true,
+
+polished.notes || null
+
+]
+);
+
+
+return res.status(201).json({
+
+message:
+'Listing created and sent for review.',
+
+product:
+result.rows[0]
+
+});
+
+
+}
+
+catch(err){
+
+console.error(
+'Create product error:',
+err
+);
+
+
+return res.status(500).json({
+
+error:'Could not create listing.'
+
+});
+
+}
+
+
+}
 export async function updateProduct(req, res) {
   const { id } = req.params;
   const fields = req.body;

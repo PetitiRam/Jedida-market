@@ -50,10 +50,10 @@ async function resolveImages(category, productHint) {
     }
   }
 
-  return [
-    `https://source.unsplash.com/600x600/?${encodeURIComponent(niceCategory)}`,
-    `https://source.unsplash.com/600x600/?${encodeURIComponent(searchTerm)}`
-  ];
+return [
+  `https://picsum.photos/seed/${encodeURIComponent(niceCategory)}/600/600`,
+  `https://picsum.photos/seed/${encodeURIComponent(searchTerm)}/600/600`
+];
 }
 
 export async function generateTemplate({ shopName, category, productHint }) {

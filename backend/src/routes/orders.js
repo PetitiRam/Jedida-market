@@ -4,6 +4,7 @@ import {
   myOrdersAsBuyer, myOrdersAsSeller, myOrdersAsDelivery, allOrders, assignDelivery
 } from '../controllers/ordersController.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { checkoutCart, confirmCartPayment } from '../controllers/ordersController.js';
 
 const router = express.Router();
 
@@ -17,5 +18,8 @@ router.get('/mine/buyer', requireAuth, myOrdersAsBuyer);
 router.get('/mine/seller', requireAuth, myOrdersAsSeller);
 router.get('/mine/delivery', requireAuth, myOrdersAsDelivery);
 router.get('/all', requireAuth, requireAdmin, allOrders);
+router.post('/cart-checkout', requireAuth, checkoutCart);
+router.post('/cart-checkout/:checkoutGroupId/confirm', requireAuth, confirmCartPayment);
+
 
 export default router;

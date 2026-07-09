@@ -4,10 +4,14 @@ import MarketplaceScreen from '../screens/buyer/MarketplaceScreen';
 import MyOrdersScreen from '../screens/buyer/MyOrdersScreen';
 import AccountScreen from '../screens/AccountScreen';
 import { colors } from '../theme';
+import CartScreen from '../screens/buyer/CartScreen';
+// add: <Tab.Screen name="Cart" component={CartScreen} />
+// add to ICONS map: Cart: 'cart'
+
 
 const Tab = createBottomTabNavigator();
 
-const ICONS = { Marketplace: 'storefront', Orders: 'receipt', Account: 'person-circle' };
+const ICONS = { Marketplace: 'storefront', Orders: 'receipt', Account: 'person-circle', Cart: 'cart' };
 
 export default function BuyerTabs() {
   return (
@@ -18,9 +22,11 @@ export default function BuyerTabs() {
         tabBarIcon: ({ color, size }) => <Ionicons name={ICONS[route.name]} size={size} color={color} />
       })}
     >
-      <Tab.Screen name="Marketplace" component={MarketplaceScreen} />
+   
+   <Tab.Screen name="Marketplace" component={MarketplaceScreen} />
       <Tab.Screen name="Orders" component={MyOrdersScreen} />
       <Tab.Screen name="Account" component={AccountScreen} />
+       <Tab.Screen name="Cart" component={CartScreen} />
     </Tab.Navigator>
   );
 }

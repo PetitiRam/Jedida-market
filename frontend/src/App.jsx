@@ -21,9 +21,8 @@ import ProductDetail from './pages/buyer/ProductDetail';
 import Checkout from './pages/buyer/Checkout';
 import MyOrders from './pages/buyer/MyOrders';
 import OrderTracking from './pages/buyer/OrderTracking';
-
 import AdminPanel from './pages/admin/AdminPanel';
-
+import CartPage from './pages/buyer/CartPage';
 function isAuthed() {
   return !!localStorage.getItem('jedida_access_token');
 }
@@ -52,6 +51,7 @@ export default function App() {
         <Route path="/checkout/:productId" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
         <Route path="/orders/:orderId/track" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+        <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
 
         {/* Seller */}
         <Route path="/seller/upgrade" element={<ProtectedRoute><SellerUpgrade /></ProtectedRoute>} />

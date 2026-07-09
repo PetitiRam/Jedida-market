@@ -27,7 +27,12 @@ import uploadsRoutes from './routes/uploads.js';
 import kycRoutes from './routes/kyc.js';
 import settingsCenterRoutes from './routes/settingsCenter.js';
 import publicSettingsCenterRoutes from './routes/publicSettingsCenter.js';
-
+import reviewRoutes from './routes/reviews.js';
+import questionRoutes from './routes/questions.js';
+import http from 'http';
+import { initChatSocket } from './chat/chatSocket.js';
+import chatV2Routes from './routes/chatV2.js';
+import commerceActionsRoutes from './routes/commerceActions.js';
 
 dotenv.config();
 
@@ -53,6 +58,7 @@ app.use(shareLinkPreviewRoutes);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/upgrade', upgradeRoutes);
 app.use('/api/shops', shopRoutes);
+app.use('/api/products', reviewRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -70,6 +76,14 @@ app.use('/api/uploads', uploadsRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/admin/settings-center', settingsCenterRoutes);
 app.use('/api/settings', publicSettingsCenterRoutes);
+app.use(
+'/questions',
+questionRoutes
+);
+
+app.use('/api/chat-v2', chatV2Routes);
+app.use('/api', commerceActionsRoutes);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'JEDIDA Marketplace API', phase: 4 });
 });
@@ -84,7 +98,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong on our end.' });
 });
 
+// Replace your existing `app.listen(PORT, ...)` at the bottom with:
+const httpServer = http.createServer(app);
+initChatSocket(httpServer, process.env.FRONTEND_URL);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🟢 JEDIDA Marketplace API running on http://localhost:${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`🟢 JEDIDA Marketplace API + real-time chat running on port ${PORT}`);
 });

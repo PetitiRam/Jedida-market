@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
 import Logo from './Logo';
-
+import * as commerceApi from '../api/commerceApi';
+import Icon from './icons/Icon';
 export default function MarketplaceHeader() {
   const [ads, setAds] = useState([]);
   const [adIndex, setAdIndex] = useState(0);
   const [user, setUser] = useState(null);
   const [logoOverride, setLogoOverride] = useState(null);
+  const [cartCount, setCartCount] = useState(0);
+ 
+
+useEffect(() => {
+  commerceApi.getCart().then(({ data }) => setCartCount(data.count)).catch(() => {});
+}, []);
+  
 
   useEffect(() => {
     client.get('/ads').then(({ data }) => setAds(data.ads || [])).catch(() => {});
@@ -52,7 +60,19 @@ export default function MarketplaceHeader() {
           <Link to="/marketplace" className="btn-link">Marketplace</Link>
           <Link to="/orders" className="btn-link">My Orders</Link>
           {roleLink()}
-          <span className="icon-btn">🔔</span>
+          <Link to="/cart" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+  <Icon name="cart" size={20} />
+  {cartCount > 0 && (
+    <span style={{
+      position: 'absolute', top: -6, right: -8, background: 'var(--terracotta)', color: '#fff',
+      fontSize: 10, fontWeight: 700, borderRadius: 999, minWidth: 16, height: 16,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px'
+    }}>
+      {cartCount}
+    </span>
+  )}
+</Link>
+           <span className="icon-btn">🔔</span>
         </div>
       </header>
     </>

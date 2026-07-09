@@ -1,5 +1,7 @@
 import { query } from '../config/db.js';
 import { ADAPTERS } from '../services/paymentProviders.js';
+import crypto from 'crypto';
+
 
 async function getSettings() {
   const r = await query('SELECT * FROM platform_settings WHERE id = 1');
@@ -199,4 +201,106 @@ export async function assignDelivery(req, res) {
     [deliveryPersonnelId]
   );
   res.json({ message: 'Delivery personnel assigned.', order: result.rows[0] });
+}
+export async function checkoutCart(req, res) {
+  const { method, shippingAddress } = req.body;
+  const adapter = ADAPTERS[method];
+  if (!adapter) return res.status(400).json({ error: 'Unsupported payment method.' });
+
+  try {
+    const cartResult = await query(
+      `SELECT ci.id AS cart_item_id, ci.quantity, p.id AS product_id, p.price, p.currency, p.quantity_available, s.id AS shop_id
+       FROM cart_items ci JOIN products p ON p.id = ci.product_id JOIN shops s ON s.id = p.shop_id
+       WHERE ci.user_id = $1 AND p.status = 'active'`,
+      [req.user.id]
+    );
+    if (cartResult.rows.length === 0) return res.status(400).json({ error: 'Your cart is empty.' });
+
+    for (const item of cartResult.rows) {
+      if (item.quantity > item.quantity_available) {
+        return res.status(400).json({ error: `Not enough stock for one of your cart items.` });
+      }
+    }
+
+    const settings = await query('SELECT * FROM platform_settings WHERE id = 1');
+    const feePercent = Number(settings.rows[0].platform_fee_percent);
+    const checkoutGroupId = crypto.randomUUID();
+    const currency = cartResult.rows[0].currency;
+
+    let combinedTotal = 0;
+    const createdOrders = [];
+
+    for (const item of cartResult.rows) {
+      const subtotal = Number(item.price) * item.quantity;
+      const feeAmount = Math.round(subtotal * feePercent) / 100;
+      const total = subtotal + feeAmount;
+      combinedTotal += total;
+
+      const orderResult = await query(
+        `INSERT INTO orders (buyer_id, shop_id, product_id, quantity, unit_price, currency, platform_fee_percent, platform_fee_amount, total_amount, shipping_address, 
+checkout_group_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        [req.user.id, item.shop_id, item.product_id, item.quantity, item.price, currency, feePercent, feeAmount, total, shippingAddress || null, checkoutGroupId]
+      );
+      createdOrders.push(orderResult.rows[0]);
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const charge = await adapter({
+      amount: combinedTotal, currency, orderId: `cart-${checkoutGroupId}`,
+      returnUrl: `${frontendUrl}/orders?checkoutGroup=${checkoutGroupId}`
+    });
+
+    for (const order of createdOrders) {
+      await query(
+        `INSERT INTO payments (order_id, method, amount, currency, status, provider_reference, raw_response)
+         VALUES ($1,$2,$3,$4,'initiated',$5,$6)`,
+        [order.id, method, order.total_amount, currency, charge.providerReference, charge.raw]
+      );
+    }
+
+    return res.status(201).json({
+      message: `Created ${createdOrders.length} order(s) from your cart. Complete payment to move funds into escrow.`,
+      orders: createdOrders, checkoutGroupId,
+      combinedTotal, checkoutUrl: charge.checkoutUrl, providerReference: charge.providerReference
+    });
+  } catch (err) {
+    console.error('Cart checkout error:', err);
+    return res.status(500).json({ error: 'Could not check out your cart.' });
+  }
+}
+
+// Confirms payment for every order in a checkout group at once, and clears
+// the cart of the items that were just purchased.
+export async function confirmCartPayment(req, res) {
+  const { checkoutGroupId } = req.params;
+
+  try {
+    const orders = await query(`SELECT * FROM orders WHERE checkout_group_id = $1 AND buyer_id = $2`, [checkoutGroupId, req.user.id]);
+    if (orders.rows.length === 0) return res.status(404).json({ error: 'Checkout group not found.' });
+
+    for (const order of orders.rows) {
+      if (order.status !== 'pending_payment') continue;
+      await query(`UPDATE payments SET status = 'succeeded' WHERE order_id = $1`, [order.id]);
+      await query(`UPDATE orders SET status = 'paid_escrow' WHERE id = $1`, [order.id]);
+      await query(`UPDATE wallets SET balance = balance + $1 WHERE type = 'escrow'`, [order.total_amount]);
+      await query(
+        `INSERT INTO escrow_ledger (order_id, direction, amount, note, created_by) VALUES ($1,'in',$2,'Cart checkout — buyer payment held in escrow',$3)`,
+        [order.id, order.total_amount, req.user.id]
+      );
+      await query(`UPDATE products SET quantity_available = quantity_available - $1, orders_count = orders_count + 1 WHERE id = $2`, [order.quantity, order.product_id]);
+      await query('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [req.user.id, order.product_id]);
+
+      const shop = await query('SELECT owner_id FROM shops WHERE id = $1', [order.shop_id]);
+      await query(
+        `INSERT INTO notifications (user_id, type, title, body) VALUES ($1,'new_order','New order received','You have a new paid order waiting to be fulfilled.')`,
+        [shop.rows[0].owner_id]
+      );
+    }
+
+    return res.json({ message: 'Payment confirmed for all items. Funds are held in escrow until delivery is confirmed.' });
+  } catch (err) {
+    console.error('Confirm cart payment error:', err);
+    return res.status(500).json({ error: 'Could not confirm payment.' });
+  }
 }

@@ -13,10 +13,10 @@ import AdminAdsPanel from './AdminAdsPanel';
 import AdminSettingsPanel from './AdminSettingsPanel';
 import AdminChatPanel from './AdminChatPanel';
 import AICommandCenter from './AICommandCenter';
-// add to imports:
 import AdminSettingsCenter from './settings/AdminSettingsCenter';
-
-
+import AdminChatBridgePanel from './AdminChatBridgePanel';
+import AdminQuestionsPanel from './AdminQuestionsPanel';
+import AdminQuotesPanel from './AdminQuotesPanel';
 const TABS = [
   { key: 'upgrades', label: '🆙 Upgrades' },
   { key: 'shops', label: 'Shops' },
@@ -28,9 +28,12 @@ const TABS = [
   { key: 'settings', label: 'Settings' },
   { key: 'chat', label: 'Chat' },
   { key: 'ai', label: '🤖 AI Command Center' },          
-  { key: 'settingsCenter', label: '⚙️ Settings Center' }
+  { key: 'settingsCenter', label: '⚙️ Settings Cener' },
+  { key: 'chatBridge', label: '🔗 Chat Bridging' },     
+  { key: 'questions', label: '❓ Product Questions' },
+  { key: 'quotes', label: 'Quote Requests' }
 ];
-
+                                                                                                                                                                                                                                                                             
 export default function AdminPanel() {
   const [user, setUser] = useState(null);
   const [checked, setChecked] = useState(false);
@@ -60,7 +63,13 @@ export default function AdminPanel() {
               {active === 'chat' && <AdminChatPanel />}
               {active === 'ai' && <AICommandCenter />}
               {active === 'settingsCenter' && <AdminSettingsCenter />}
-            </>
+               {active === 'chatBridge' && <AdminChatBridgePanel />}           
+              {active === 'questions' && <AdminQuestionsPanel />} 
+              {active === 'quotes' && <AdminQuotesPanel />}
+
+
+ </>         
+
           )}
         </TabBar>
       </div>

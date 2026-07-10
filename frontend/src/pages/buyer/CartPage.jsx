@@ -5,6 +5,7 @@ import Icon from '../../components/icons/icon';
 import * as commerceApi from '../../api/commerceApi';
 import client from '../../api/client';
 import PaymentMethodSelector from '../../components/PaymentMethodSelector';
+import * as couponsApi from '../../api/couponsApi';
 
 
 export default function CartPage() {
@@ -14,6 +15,19 @@ export default function CartPage() {
 const [method, setMethod] = useState('flutterwave');
 const [checkingOut, setCheckingOut] = useState(false);
 const [checkoutResult, setCheckoutResult] = useState(null);
+  const [couponCode, setCouponCode] = useState('');
+const [appliedCoupon, setAppliedCoupon] = useState(null);
+const [couponError, setCouponError] = useState('');
+
+const applyCoupon = async () => {
+  setCouponError('');
+  try {
+    const { data } = await couponsApi.validateCoupon(couponCode, cart.items[0]?.shop_id, cart.total);
+    setAppliedCoupon(data);
+  } catch (err) {
+    setCouponError(err.response?.data?.error || 'Invalid coupon.');
+  }
+};
 
 const checkoutCart = async () => {
   setCheckingOut(true);
@@ -113,7 +127,15 @@ onClick={() => changeQuantity(item.id, item.quantity + 1)}>+</button>
             <div style={{ marginBottom: 14 }}>
               <PaymentMethodSelector value={method} onChange={setMethod} />
             </div>
-
+          <div className="field-group">
+  <label>Coupon code</label>
+  <div style={{ display: 'flex', gap: 8 }}>
+    <input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="Enter code" />
+<button type="button" className="btn-secondary" onClick={applyCoupon}>Apply</button>
+  </div>
+  {couponError && <p style={{ color: '#8A2E10', fontSize: '0.78rem', marginTop: 4 }}>{couponError}</p>}
+  {appliedCoupon && <p style={{ color: 'var(--forest)', fontSize: '0.85rem', marginTop: 4 }}>Discount applied: -{appliedCoupon.discount} {cart.items[0]?.currency}</p>}
+</div>
             <button
               className="btn-primary"
               disabled={checkingOut}

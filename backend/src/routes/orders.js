@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   createOrder, confirmPayment, confirmDelivery, releaseFunds,
-  myOrdersAsBuyer, myOrdersAsSeller, myOrdersAsDelivery, allOrders, assignDelivery
+  myOrdersAsBuyer, myOrdersAsSeller, myOrdersAsDelivery, allOrders,cancelOrder,reorder,getReceipt,contactSellerAboutOrder, assignDelivery
 } from '../controllers/ordersController.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { checkoutCart, confirmCartPayment } from '../controllers/ordersController.js';
@@ -20,6 +20,9 @@ router.get('/mine/delivery', requireAuth, myOrdersAsDelivery);
 router.get('/all', requireAuth, requireAdmin, allOrders);
 router.post('/cart-checkout', requireAuth, checkoutCart);
 router.post('/cart-checkout/:checkoutGroupId/confirm', requireAuth, confirmCartPayment);
-
+router.post('/:orderId/cancel', requireAuth, cancelOrder);
+router.post('/:orderId/reorder', requireAuth, reorder);
+router.get('/:orderId/receipt', requireAuth, getReceipt);
+router.post('/:orderId/contact-seller', requireAuth, contactSellerAboutOrder);
 
 export default router;

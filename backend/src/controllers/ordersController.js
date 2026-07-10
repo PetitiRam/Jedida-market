@@ -304,3 +304,81 @@ export async function confirmCartPayment(req, res) {
     return res.status(500).json({ error: 'Could not confirm payment.' });
   }
 }
+const CANCELLABLE_STATUSES = ['pending_payment', 'paid_escrow'];
+
+export async function cancelOrder(req, res) {
+  const { reason } = req.body;
+  const order = await query('SELECT * FROM orders WHERE id = $1 AND buyer_id = $2', [req.params.orderId, req.user.id]);
+  if (order.rows.length === 0) return res.status(404).json({ error: 'Order not found.' });
+  if (!CANCELLABLE_STATUSES.includes(order.rows[0].status)) {
+    return res.status(400).json({ error: 'This order can no longer be cancelled.' });
+  }
+
+  await query(`UPDATE orders SET status = 'cancelled', cancelled_at = now(), cancellation_reason = $1 WHERE id = $2`, [reason || null, req.params.orderId]);
+
+  if (order.rows[0].status === 'paid_escrow') {
+    // refund held escrow back to buyer's wallet
+    await query(`UPDATE wallets SET balance = balance - $1 WHERE type = 'escrow'`, [order.rows[0].total_amount]);
+    await query(`UPDATE wallets SET balance = balance + $1 WHERE owner_id = $2 AND type = 'user'`, [order.rows[0].total_amount, req.user.id]);
+    await query(`UPDATE products SET quantity_available = quantity_available + $1 WHERE id = $2`, [order.rows[0].quantity, order.rows[0].product_id]);
+  }
+
+  res.json({ message: 'Order cancelled.' });
+}
+
+export async function reorder(req, res) {
+  const original = await query('SELECT * FROM orders WHERE id = $1 AND buyer_id = $2', [req.params.orderId, req.user.id]);
+  if (original.rows.length === 0) return res.status(404).json({ error: 'Order not found.' });
+
+  const product = await query('SELECT quantity_available, status FROM products WHERE id = $1', [original.rows[0].product_id]);
+  if (!product.rows[0] || product.rows[0].status !== 'active') {
+    return res.status(400).json({ error: 'This product is no longer available.' });
+  }
+
+  res.json({
+    message: 'Ready to reorder — proceed to checkout.',
+    productId: original.rows[0].product_id,
+    quantity: original.rows[0].quantity
+  });
+}
+
+export async function getReceipt(req, res) {
+  const order = await query(
+    `SELECT o.*, p.title AS product_title, s.name AS shop_name FROM orders o
+     JOIN products p ON p.id = o.product_id JOIN shops s ON s.id = o.shop_id
+     WHERE o.id = $1 AND o.buyer_id = $2`,
+    [req.params.orderId, req.user.id]
+  );
+  if (order.rows.length === 0) return res.status(404).json({ error: 'Order not found.' });
+
+  res.json({
+    receipt: {
+      orderId: order.rows[0].id,
+      date: order.rows[0].created_at,
+      product: order.rows[0].product_title,
+      shop: order.rows[0].shop_name,
+      quantity: order.rows[0].quantity,
+      unitPrice: order.rows[0].unit_price,
+      platformFee: order.rows[0].platform_fee_amount,
+      total: order.rows[0].total_amount,
+      currency: order.rows[0].currency,
+      status: order.rows[0].status
+    }
+  });
+}
+
+// Contact seller about a specific order — routes through the existing
+// Buyer -> Admin bridge system, tagging the message with the order for context.
+export async function contactSellerAboutOrder(req, res) {
+  const order = await query('SELECT * FROM orders WHERE id = $1 AND buyer_id = $2', [req.params.orderId, req.user.id]);
+  if (order.rows.length === 0) return res.status(404).json({ error: 'Order not found.' });
+
+  const { getOrCreateConversation, sendMessage } = await import('../chat/chatService.js');
+  const convo = await getOrCreateConversation(req.user.id);
+  await sendMessage({
+    conversationId: convo.id, senderId: req.user.id,
+    body: `Regarding order ${order.rows[0].id.slice(0, 8)}: ${req.body.message || 'I have a question about this order.'}`
+  });
+
+  res.json({ message: 'Message sent to the admin team, who will relay it to the seller.', conversationId: convo.id });
+}

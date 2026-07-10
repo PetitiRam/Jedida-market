@@ -33,6 +33,7 @@ import http from 'http';
 import { initChatSocket } from './chat/chatSocket.js';
 import chatV2Routes from './routes/chatV2.js';
 import commerceActionsRoutes from './routes/commerceActions.js';
+import couponsRoutes from './routes/coupons.js';
 
 dotenv.config();
 
@@ -83,6 +84,7 @@ questionRoutes
 
 app.use('/api/chat-v2', chatV2Routes);
 app.use('/api', commerceActionsRoutes);
+app.use('/api/coupons', couponsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'JEDIDA Marketplace API', phase: 4 });

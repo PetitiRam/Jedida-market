@@ -11,6 +11,8 @@ import TemplatesPanel from './TemplatesPanel';
 import NotificationsPanel from './NotificationsPanel';
 import OrdersPanel from './OrdersPanel';
 import WalletPanel from './WalletPanel';
+import ShopSettingsPanel from './ShopSettingsPanel';
+
 
 const TABS = [
   { key: 'shop', label: 'My Shop' },
@@ -20,7 +22,8 @@ const TABS = [
   { key: 'orders', label: 'Orders' },
   { key: 'wallet', label: 'Wallet' },
   { key: 'notifications', label: 'Notifications' },
-  { key: 'chat', label: 'Chat with Admin' }
+  { key: 'chat', label: 'Chat with Admin' },
+  { key: 'shopSettings', label: 'Shop Settings' }
 ];
 
 export default function SellerDashboard() {
@@ -66,6 +69,7 @@ export default function SellerDashboard() {
               {active === 'wallet' && <WalletPanel />}
               {active === 'notifications' && <NotificationsPanel />}
               {active === 'chat' && <ChatPanel />}
+              {active === 'shopSettings' && <ShopSettingsPanel />}
             </>
           )}
         </TabBar>

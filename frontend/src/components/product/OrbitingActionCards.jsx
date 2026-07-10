@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Icon from '../icons/Icon';
+import Icon from '../icons/icon';
 
 const ACTIONS = [
   { key: 'contact', icon: 'message', label: 'Contact Marketplace' },

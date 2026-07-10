@@ -10,7 +10,7 @@ import TrustBadges from '../../components/product/TrustBadges';
 import ProductTabs from '../../components/product/ProductTabs';
 import RelatedProductsCarousel from '../../components/product/RelatedProductsCarousel';
 import QuoteRequestModal from '../../components/product/QuoteRequestModal';
-import Icon from '../../components/icons/Icon';
+import Icon from '../../components/icons/icon';
 
 export default function ProductDetail() {
   const { id } = useParams();

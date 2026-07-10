@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MarketplaceHeader from '../../components/MarketplaceHeader';
-import Icon from '../../components/icons/Icon';
+import Icon from '../../components/icons/icon';
 import * as commerceApi from '../../api/commerceApi';
 import client from '../../api/client';
 import PaymentMethodSelector from '../../components/PaymentMethodSelector';

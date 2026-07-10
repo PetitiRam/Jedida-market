@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as commerceApi from '../../api/commerceApi';
-import Icon from '../icons/Icon';
+import Icon from '../icons/icon';
 
 export default function SupplierCard({ product, onContact, onReport }) {
   const specs = product.specs || {};

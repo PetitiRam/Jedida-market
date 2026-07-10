@@ -1,4 +1,4 @@
-import Icon from '../icons/Icon';
+import Icon from '../icons/icon';
 
 const BADGES = [
   { key: 'checkShield', label: 'Verified Supplier', condition: (s) => s.verified_supplier },

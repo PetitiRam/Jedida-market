@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import SpecsTable from './SpecsTable';
-import Icon from '../icons/Icon';
+import Icon from '../icons/icon';
 import * as reviewsApi from '../../api/reviewsApi';
 
 const TABS = [

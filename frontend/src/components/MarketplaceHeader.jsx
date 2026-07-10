@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import client from '../api/client';
 import Logo from './Logo';
 import * as commerceApi from '../api/commerceApi';
-import Icon from './icons/Icon';
+import Icon from './icons/icon';
 export default function MarketplaceHeader() {
   const [ads, setAds] = useState([]);
   const [adIndex, setAdIndex] = useState(0);

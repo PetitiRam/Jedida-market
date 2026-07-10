@@ -57,16 +57,50 @@ export default function ProductTabs({ product }) {
           ) : <EmptyTab text="No package contents listed yet." />
         )}
 
-        {active === 'Shipping' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Row label="Ships from" value={[product.location_city, product.location_country].filter(Boolean).join(', ')} />
-            {(product.shipping_options || []).map((opt, i) => (
-              <Row key={i} label={opt.label} value={opt.fee ? `${product.currency} ${opt.fee}` : 'Free'} />
-            ))}
-            {(!product.shipping_options || product.shipping_options.length === 0) && <EmptyTab text="No shipping options configured yet." />}
-          </div>
-        )}
+{active === 'Shipping' && (() => {
+  const shipping =
+    typeof product.shipping_options === "string"
+      ? JSON.parse(product.shipping_options)
+      : (product.shipping_options || {});
 
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+      <Row
+        label="Ships From"
+        value={[product.location_city, product.location_country]
+          .filter(Boolean)
+          .join(", ")}
+      />
+
+      <Row
+        label="Warehouse"
+        value={shipping.warehouseLocation}
+      />
+
+      <Row
+        label="Delivery Time"
+        value={shipping.deliveryTime}
+      />
+
+      <Row
+        label="Shipping Cost"
+        value={
+          shipping.shippingCost
+            ? `${product.currency} ${shipping.shippingCost}`
+            : "Free"
+        }
+      />
+
+      {!shipping.warehouseLocation &&
+       !shipping.deliveryTime &&
+       !shipping.shippingCost && (
+        <EmptyTab text="Shipping information has not been added yet." />
+      )}
+
+    </div>
+  );
+})()}
         {active === 'Reviews' && <ReviewsTab productId={product.id} />}
         {active === 'Q&A' && <QandATab productId={product.id} />}
 

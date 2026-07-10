@@ -60,6 +60,18 @@ useEffect(() => {
           <Link to="/marketplace" className="btn-link">Marketplace</Link>
           <Link to="/orders" className="btn-link">My Orders</Link>
           {roleLink()}
+
+      <Link
+  to="/cart"
+  style={{
+    background: "red",
+    color: "white",
+    padding: "10px",
+    borderRadius: "6px"
+  }}
+>
+  CART
+</Link>
           <Link to="/cart" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
   <Icon name="cart" size={20} />
   {cartCount > 0 && (

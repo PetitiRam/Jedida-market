@@ -12,7 +12,7 @@ import RelatedProductsCarousel from '../../components/product/RelatedProductsCar
 import QuoteRequestModal from '../../components/product/QuoteRequestModal';
 import Icon from '../../components/icons/icon';
 
-export default function ProductDetail() {
+export default function ProductDetail({ previewProduct = null, previewMode = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
@@ -23,6 +23,11 @@ export default function ProductDetail() {
   const [addingToCart, setAddingToCart] = useState(false);
 
 useEffect(() => {
+  if (previewProduct) {
+    setProduct(previewProduct);
+    return;
+  }
+
   const loadProduct = async () => {
     try {
       const [{ data: productData }, { data: wishlistData }] =
@@ -41,8 +46,7 @@ useEffect(() => {
   };
 
   loadProduct();
-}, [id]);
-
+}, [id, previewProduct]);
   const showNotice = (text) => { setNotice(text); setTimeout(() => setNotice(''), 3000); };
 
   const toggleWishlist = async () => {
@@ -168,12 +172,20 @@ useEffect(() => {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button className="btn-primary" disabled={product.quantity_available === 0} onClick={() => navigate(`/checkout/${product.id}?qty=${qty}`)}>
+{!previewMode && (              
+<button className="btn-primary" disabled={product.quantity_available === 0} onClick={() => navigate(`/checkout/${product.id}?qty=${qty}`)}>
                 Buy Now
               </button>
-              <button className="btn-secondary" disabled={product.quantity_available === 0 || addingToCart} onClick={addToCart}>
-                {addingToCart ? 'Adding…' : 'Add to Cart'}
-              </button>
+)}  
+         {!previewMode && (
+  <button 
+    className="btn-secondary" 
+    disabled={product.quantity_available === 0 || addingToCart} 
+    onClick={addToCart}
+  >
+    {addingToCart ? 'Adding…' : 'Add to Cart'}
+  </button>
+)}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => 
 setQuoteModalOpen(true)}>

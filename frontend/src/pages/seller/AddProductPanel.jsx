@@ -163,13 +163,18 @@ const payload = {
 
   shippingCost: Number(form.shippingCost || 0),
 
-  images: form.images
+images: [
+  ...form.media
+    .filter((item) => item.type === 'image')
+    .map((item) => item.url),
+
+  ...(form.images
     ? form.images
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean)
-    : [],
-
+    : [])
+],
   templateId: selectedTemplateId || null
 };
       const { data } = await client.post('/products', payload);

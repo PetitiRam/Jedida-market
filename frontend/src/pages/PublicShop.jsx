@@ -4,7 +4,7 @@ import client from '../api/client';
 import * as shopApi from '../api/shopApi';
 import * as commerceApi from '../api/commerceApi';
 import Logo from '../components/Logo';
-import Icon from '../components/icons/Icon';
+import Icon from '../components/icons/icon';
 import { CATEGORIES } from '../constants/categories';
 
 const SORTS = [

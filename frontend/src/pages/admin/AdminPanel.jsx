@@ -17,6 +17,7 @@ import AdminSettingsCenter from './settings/AdminSettingsCenter';
 import AdminChatBridgePanel from './AdminChatBridgePanel';
 import AdminQuestionsPanel from './AdminQuestionsPanel';
 import AdminQuotesPanel from './AdminQuotesPanel';
+import AdminPayments from './AdminPayments';
 const TABS = [
   { key: 'upgrades', label: '🆙 Upgrades' },
   { key: 'shops', label: 'Shops' },
@@ -31,7 +32,8 @@ const TABS = [
   { key: 'settingsCenter', label: '⚙️ Settings Cener' },
   { key: 'chatBridge', label: '🔗 Chat Bridging' },     
   { key: 'questions', label: '❓ Product Questions' },
-  { key: 'quotes', label: 'Quote Requests' }
+  { key: 'quotes', label: 'Quote Requests' },
+ { key: 'payments', label: '💳 Payments' }
 ];
                                                                                                                                                                                                                                                                              
 export default function AdminPanel() {
@@ -58,7 +60,8 @@ export default function AdminPanel() {
               {active === 'users' && <AdminUsersPanel />}
               {active === 'orders' && <AdminOrdersPanel />}
               {active === 'withdrawals' && <AdminWithdrawalsPanel />}
-              {active === 'ads' && <AdminAdsPanel />}
+            {active === 'payments' && <AdminPayments />}       
+       {active === 'ads' && <AdminAdsPanel />}
               {active === 'settings' && <AdminSettingsPanel />}
               {active === 'chat' && <AdminChatPanel />}
               {active === 'ai' && <AICommandCenter />}

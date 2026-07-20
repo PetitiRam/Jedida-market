@@ -34,6 +34,7 @@ import { initChatSocket } from './chat/chatSocket.js';
 import chatV2Routes from './routes/chatV2.js';
 import commerceActionsRoutes from './routes/commerceActions.js';
 import couponsRoutes from './routes/coupons.js';
+import adminPaymentsRoutes from "./routes/adminPaymentsRoutes.js";
 
 dotenv.config();
 
@@ -59,7 +60,7 @@ app.use(shareLinkPreviewRoutes);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/upgrade', upgradeRoutes);
 app.use('/api/shops', shopRoutes);
-app.use('/api/products', reviewRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -77,6 +78,7 @@ app.use('/api/uploads', uploadsRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/admin/settings-center', settingsCenterRoutes);
 app.use('/api/settings', publicSettingsCenterRoutes);
+app.use("/api/admin/payments", adminPaymentsRoutes);
 app.use(
 '/questions',
 questionRoutes

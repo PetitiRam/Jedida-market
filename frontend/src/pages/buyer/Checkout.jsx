@@ -1,101 +1,385 @@
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import client from '../../api/client';
-import MarketplaceHeader from '../../components/MarketplaceHeader';
-import PaymentMethodSelector from '../../components/PaymentMethodSelector';
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import client from "../../api/client";
+import MarketplaceHeader from "../../components/MarketplaceHeader";
+import PaymentMethodSelector from "../../components/PaymentMethodSelector";
 
 export default function Checkout() {
+
   const { productId } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const qty = Number(params.get('qty') || 1);
+
+  const qty = Number(params.get("qty") || 1);
 
   const [product, setProduct] = useState(null);
-  const [method, setMethod] = useState('stripe');
-  const [address, setAddress] = useState('');
-  const [error, setError] = useState('');
+  const [method, setMethod] = useState("mtn_mobile_money");
+  const [address, setAddress] = useState("");
+
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+const [phoneNumber,setPhoneNumber] = useState("");
+const [transactionReference,setTransactionReference] = useState("");
+const [proof,setProof] = useState(null);
 
   useEffect(() => {
-    client.get(`/products/${productId}`).then(({ data }) => setProduct(data.product));
-  }, [productId]);
 
-  const placeOrder = async () => {
-    setBusy(true); setError('');
-    try {
-      const { data } = await client.post('/orders', {
-        productId, quantity: qty, shippingAddress: address, method
-      });
-      setResult(data);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Could not place order.');
-    } finally {
-      setBusy(false);
+    async function loadProduct(){
+
+      try {
+
+        const {data} = await client.get(
+          `/products/${productId}`
+        );
+
+        setProduct(data.product);
+
+      } catch(err){
+
+        setError(
+          "Unable to load product."
+        );
+
+      }
+
     }
-  };
 
-  const confirmPaid = async () => {
+    loadProduct();
+
+  },[productId]);
+
+
+
+  const placeOrder = async()=>{
+
+    if(!address.trim()){
+
+      setError(
+        "Please enter delivery address."
+      );
+
+      return;
+
+    }
+
+
+    if(!method){
+
+      setError(
+        "Please select payment method."
+      );
+
+      return;
+
+    }
+
+
     setBusy(true);
-    try {
-      await client.post(`/orders/${result.order.id}/confirm-payment`);
-      navigate('/orders');
-    } finally {
+    setError("");
+
+
+    try{
+
+
+      const {data}= await client.post(
+        "/orders",
+        {
+          productId,
+          quantity:qty,
+          shippingAddress:address,
+
+          // manual payment identifier
+          method
+        }
+      );
+
+
+      /*
+        Redirect buyer to manual payment center
+        with created order id
+      */
+
+      navigate(
+        `/payment-center/${data.order.id}`
+      );
+
+
+    }catch(err){
+
+      setError(
+        err.response?.data?.error ||
+        "Failed creating order."
+      );
+
+    }finally{
+
       setBusy(false);
+
     }
+
   };
 
-  if (!product) return <div className="empty-state">Loading…</div>;
+
+
+  if(!product){
+
+    return(
+      <>
+      <MarketplaceHeader/>
+
+      <div className="dash-body">
+        Loading product...
+      </div>
+
+      </>
+    );
+
+  }
+
+
+
+  const total =
+    Number(product.price) * qty;
+
+
 
   return (
-    <div>
-      <MarketplaceHeader />
-      <div className="dash-body" style={{ maxWidth: 560 }}>
-        <h2>Checkout</h2>
-        <div className="card-surface">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span>{product.title} × {qty}</span>
-            <strong>{product.currency} {(product.price * qty).toLocaleString()}</strong>
-          </div>
 
-          {error && <div className="alert alert-error">{error}</div>}
+    <>
 
-          {!result ? (
-            <>
-              <div className="field-group">
-                <label>Shipping address</label>
-                <textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Where should this be delivered?" />
-              </div>
+    <MarketplaceHeader/>
 
-              <label style={{ fontWeight: 600, fontSize: '0.85rem', display: 'block', marginBottom: 8 }}>Payment method</label>
-              <div style={{ marginBottom: 16 }}>
-                <PaymentMethodSelector value={method} onChange={setMethod} />
-              </div>
 
-              <button className="btn-primary" onClick={placeOrder} disabled={busy}>
-                {busy ? 'Placing order…' : 'Place order'}
-              </button>
-              <p className="auth-footer-note">Your payment is held in escrow until delivery is confirmed by you, the seller, and delivery partner.</p>
-            </>
-          ) : (
-            <>
-              <div className="alert alert-success">{result.message}</div>
-              {result.checkoutUrl ? (
-                <a href={result.checkoutUrl} target="_blank" rel="noreferrer">
-                  <button className="btn-primary" type="button">Continue to {method} →</button>
-                </a>
-              ) : (
-                <p style={{ color: '#5B6760', fontSize: '0.85rem' }}>
-                  Sandbox mode: no live {method} key configured yet. Reference: {result.providerReference}
-                </p>
-              )}
-              <button className="btn-secondary" style={{ marginTop: 12, width: '100%' }} onClick={confirmPaid} disabled={busy}>
-                {busy ? 'Confirming…' : "I've completed payment — move funds to escrow"}
-              </button>
-            </>
-          )}
+    <div
+      className="dash-body"
+      style={{
+        maxWidth:600
+      }}
+    >
+
+      <h2>
+        Checkout
+      </h2>
+
+
+      <div className="card-surface">
+
+
+        <div
+          style={{
+            display:"flex",
+            justifyContent:"space-between",
+            marginBottom:20
+          }}
+        >
+
+          <span>
+            {product.title} × {qty}
+          </span>
+
+
+          <strong>
+            {product.currency}{" "}
+            {total.toLocaleString()}
+          </strong>
+
+
         </div>
+
+
+
+        {
+          error &&
+          <div className="alert alert-error">
+            {error}
+          </div>
+        }
+
+
+
+        <div className="field-group">
+
+          <label>
+            Delivery Address
+          </label>
+
+
+          <textarea
+
+            rows={3}
+
+            value={address}
+
+            onChange={
+              e=>setAddress(e.target.value)
+            }
+
+            placeholder="Enter delivery location"
+
+          />
+
+        </div>
+
+
+
+
+        <label
+          style={{
+            fontWeight:700,
+            display:"block",
+            marginBottom:10
+          }}
+        >
+
+          Select Manual Payment Method
+
+        </label>
+
+
+
+        <PaymentMethodSelector
+
+          value={method}
+
+          onChange={setMethod}
+
+        />
+
+{(method === "mtn_mobile_money" ||
+  method === "airtel_money") && (
+
+<div className="card-surface"
+style={{
+ padding:20,
+ marginTop:20
+}}>
+
+<h3>
+{
+method === "mtn_mobile_money"
+? "MTN Mobile Money Payment"
+: "Airtel Money Payment"
+}
+</h3>
+
+
+<p>
+Pay to:
+<strong>
+{
+method === "mtn_mobile_money"
+? "0770123456"
+: "0750123456"
+}
+</strong>
+</p>
+
+
+<p>
+Amount:
+<strong>
+UGX {(product.price * qty).toLocaleString()}
+</strong>
+</p>
+
+
+<div className="field-group">
+
+<label>
+Your Mobile Money Number
+</label>
+
+<input
+value={phoneNumber}
+onChange={(e)=>setPhoneNumber(e.target.value)}
+placeholder="07XXXXXXXX"
+/>
+
+</div>
+
+
+
+<div className="field-group">
+
+<label>
+Transaction Reference
+</label>
+
+<input
+value={transactionReference}
+onChange={(e)=>setTransactionReference(e.target.value)}
+placeholder="MPXXXXXXXX"
+/>
+
+</div>
+
+
+
+<div className="field-group">
+
+<label>
+Payment Screenshot
+</label>
+
+<input
+type="file"
+accept="image/*"
+onChange={(e)=>setProof(e.target.files[0])}
+/>
+
+</div>
+
+
+</div>
+
+)}
+
+
+        <button
+
+          className="btn-primary"
+
+          disabled={busy}
+
+          onClick={placeOrder}
+
+          style={{
+            width:"100%",
+            marginTop:25
+          }}
+
+        >
+
+        {
+          busy
+          ?
+          "Creating Order..."
+          :
+          "Submit Payment"
+
+        }
+
+        </button>
+
+
+
+        <p className="auth-footer-note">
+
+          After creating your order, JEDIDA Payment Center will show
+          the MTN/Airtel payment number and allow you to submit
+          your transaction reference.
+
+        </p>
+
+
       </div>
+
+
     </div>
+
+
+    </>
+
   );
+
 }

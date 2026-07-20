@@ -81,8 +81,48 @@ export async function createCoinbaseCharge({ amount, currency, orderId, returnUr
 }
 
 export const ADAPTERS = {
-  stripe: createStripeCharge,
-  flutterwave: createFlutterwaveCharge,
-  dpo: createDpoCharge,
-  coinbase: createCoinbaseCharge
+
+  mtn_mobile_money: async ({
+    amount,
+    currency,
+    orderId
+  }) => {
+
+    return {
+      providerReference: `MTN-${orderId}-${Date.now()}`,
+      checkoutUrl: null,
+
+      raw: {
+        provider: "MTN Mobile Money",
+        status: "manual_payment",
+        amount,
+        currency,
+        instructions:
+          "Pay to JEDIDA MTN Mobile Money number"
+      }
+    };
+  },
+
+
+  airtel_money: async ({
+    amount,
+    currency,
+    orderId
+  }) => {
+
+    return {
+      providerReference: `AIRTEL-${orderId}-${Date.now()}`,
+      checkoutUrl: null,
+
+      raw: {
+        provider: "Airtel Money",
+        status: "manual_payment",
+        amount,
+        currency,
+        instructions:
+          "Pay to JEDIDA Airtel Money number"
+      }
+    };
+  }
+
 };

@@ -23,6 +23,9 @@ import MyOrders from './pages/buyer/MyOrders';
 import OrderTracking from './pages/buyer/OrderTracking';
 import AdminPanel from './pages/admin/AdminPanel';
 import CartPage from './pages/buyer/CartPage';
+import PaymentCenter from "./pages/buyer/PaymentCenter";
+import AdminPayments from "./pages/admin/AdminPayments";
+
 function isAuthed() {
   return !!localStorage.getItem('jedida_access_token');
 }
@@ -36,7 +39,7 @@ export default function App() {
     <BrowserRouter>
       <PetitiStyleInjector />
       <Routes>
-        <Route path="/" element={<GetStarted />} />
+        <Route path="/" element={<Marketplace />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -46,13 +49,29 @@ export default function App() {
         <Route path="/p/:slug" element={<DynamicPage />} />
 
         {/* Buyer / Main Marketplace */}
-        <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
-        <Route path="/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+        <Route path="/marketplace" element={<Marketplace />} />
+
+<Route path="/product/:id" element={<ProductDetail />} />
+
+<Route path="/s/:slug" element={<PublicShop />} />
+
+<Route path="/p/:slug" element={<DynamicPage />} />
         <Route path="/checkout/:productId" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
         <Route path="/orders/:orderId/track" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
-
+        <Route
+  path="/payment-center/:orderId"
+  element={
+    <ProtectedRoute>
+      <PaymentCenter />
+    </ProtectedRoute>
+  }
+/>
+<Route
+ path="/admin/payments"
+ element={<AdminPayments />}
+/>
         {/* Seller */}
         <Route path="/seller/upgrade" element={<ProtectedRoute><SellerUpgrade /></ProtectedRoute>} />
         <Route path="/seller" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />

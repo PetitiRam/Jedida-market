@@ -1,180 +1,328 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import MarketplaceHeader from '../../components/MarketplaceHeader';
-import Icon from '../../components/icons/icon';
-import * as commerceApi from '../../api/commerceApi';
-import client from '../../api/client';
-import PaymentMethodSelector from '../../components/PaymentMethodSelector';
-import * as couponsApi from '../../api/couponsApi';
-
+import { useEffect, useState } from "react";
+import MarketplaceHeader from "../../components/MarketplaceHeader";
+import Icon from "../../components/icons/icon";
+import * as commerceApi from "../../api/commerceApi";
+import client from "../../api/client";
+import PaymentMethodSelector from "../../components/PaymentMethodSelector";
 
 export default function CartPage() {
-  const navigate = useNavigate();
   const [cart, setCart] = useState(null);
-  const [updating, setUpdating] = useState({});
-const [method, setMethod] = useState('flutterwave');
-const [checkingOut, setCheckingOut] = useState(false);
-const [checkoutResult, setCheckoutResult] = useState(null);
-  const [couponCode, setCouponCode] = useState('');
-const [appliedCoupon, setAppliedCoupon] = useState(null);
-const [couponError, setCouponError] = useState('');
 
-const applyCoupon = async () => {
-  setCouponError('');
-  try {
-    const { data } = await couponsApi.validateCoupon(couponCode, cart.items[0]?.shop_id, cart.total);
-    setAppliedCoupon(data);
-  } catch (err) {
-    setCouponError(err.response?.data?.error || 'Invalid coupon.');
-  }
-};
+  const [method, setMethod] = useState("mtn_mobile_money");
+  const [checkingOut, setCheckingOut] = useState(false);
 
-const checkoutCart = async () => {
-  setCheckingOut(true);
-  try {
-    const { data } = await client.post('/orders/cart-checkout', {
-      method, shippingAddress: '' // add a shipping address field above if you want it collected here
-    });
-    setCheckoutResult(data);
-  } catch (err) {
-    alert(err.response?.data?.error || 'Could not check out.');
-  } finally {
-    setCheckingOut(false);
-  }
-};
+  const [checkoutResult, setCheckoutResult] = useState(null);
 
-const confirmPaid = async () => {
-  await client.post(
-    `/orders/cart-checkout/${checkoutResult.checkoutGroupId}/confirm`
-  );
-  navigate("/orders");
-};
-  const load = () => commerceApi.getCart().then(({ data }) => setCart(data));
-  useEffect(() => { load(); }, []);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [transactionReference, setTransactionReference] = useState("");
+  const [proof, setProof] = useState(null);
 
-  const changeQuantity = async (itemId, newQty) => {
-    setUpdating((u) => ({ ...u, [itemId]: true }));
+
+  const load = async () => {
+    const { data } = await commerceApi.getCart();
+    setCart(data);
+  };
+
+
+  useEffect(() => {
+    load();
+  }, []);
+
+
+  const checkoutCart = async () => {
+
+    setCheckingOut(true);
+
     try {
-      await commerceApi.updateCartItem(itemId, newQty);
-      await load();
+
+      const { data } = await client.post(
+        "/orders/cart-checkout",
+        {
+          method,
+          shippingAddress: ""
+        }
+      );
+
+
+      // DON'T NAVIGATE
+      // Keep user here and show payment form
+
+      setCheckoutResult(data);
+
+
+    } catch(err){
+
+      alert(
+        err.response?.data?.error ||
+        "Could not checkout."
+      );
+
     } finally {
-      setUpdating((u) => ({ ...u, [itemId]: false }));
+
+      setCheckingOut(false);
+
     }
   };
 
-  const removeItem = async (itemId) => {
-    await commerceApi.removeCartItem(itemId);
-    load();
+
+  const submitPayment = async () => {
+
+    if(!phoneNumber || !transactionReference){
+
+      alert(
+        "Enter payment number and transaction reference"
+      );
+
+      return;
+    }
+
+
+    try {
+
+      await client.post(
+        `/orders/cart-checkout/${checkoutResult.checkoutGroupId}/confirm`
+      );
+
+
+      alert(
+        "Payment submitted for verification"
+      );
+
+
+      window.location.href="/orders";
+
+
+    } catch(err){
+
+      alert(
+        err.response?.data?.error ||
+        "Payment submission failed"
+      );
+
+    }
+
   };
 
-  if (!cart) return <div className="empty-state">Loading cart…</div>;
+
+  if(!cart){
+
+    return (
+      <div className="empty-state">
+        Loading cart...
+      </div>
+    );
+
+  }
+
 
   return (
+
     <div>
+
       <MarketplaceHeader />
-      <div className="dash-body" style={{ maxWidth: 800 }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="cart" size={22} /> Your Cart
-        </h2>
 
-        {cart.items.length === 0 ? (
-          <div className="empty-state">Your cart is empty. Browse the marketplace to add products.</div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-              {cart.items.map((item) => (
-                <div key={item.id} className="card-surface" style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--cream-dim)', flexShrink: 0, overflow: 'hidden' }}>
-                    {item.images?.[0] && <img src={item.images[0]} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  </div>
 
-                  <div style={{ flex: 1 }}>
-                    <strong>{item.title}</strong>
-                    <div className="product-card-meta">{item.currency} {Number(item.price).toLocaleString()} each</div>
-                  </div>
+      <div
+        className="dash-body"
+        style={{maxWidth:800}}
+      >
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button className="btn-secondary" style={{ padding: '4px 10px' }} disabled={updating[item.id] || item.quantity <= 1} onClick={() => 
-changeQuantity(item.id, item.quantity - 1)}>−</button>
-                    <span style={{ minWidth: 24, textAlign: 'center' }}>{item.quantity}</span>
-                    <button className="btn-secondary" style={{ padding: '4px 10px' }} disabled={updating[item.id] || item.quantity >= item.quantity_available} 
-onClick={() => changeQuantity(item.id, item.quantity + 1)}>+</button>
-                  </div>
+      <h2>
+        <Icon name="cart" size={22}/>
+        Your Cart
+      </h2>
 
-                  <strong style={{ minWidth: 90, textAlign: 'right' }}>{item.currency} {(item.price * item.quantity).toLocaleString()}</strong>
 
-                  <button className="btn-link" onClick={() => removeItem(item.id)}>Remove</button>
-                </div>
-              ))}
-            </div>
+      {cart.items.map(item=>(
 
-<div className="card-surface" style={{ marginTop: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div>
-            <div className="product-card-meta">{cart.count} item(s)</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--forest)' }}>
-              {cart.items[0]?.currency} {cart.total.toLocaleString()}
-            </div>
-          </div>
+        <div
+          key={item.id}
+          className="card-surface"
+          style={{
+            marginBottom:10
+          }}
+        >
+
+          <strong>
+            {item.title}
+          </strong>
+
+          <p>
+            {item.currency}{" "}
+            {item.price.toLocaleString()}
+            {" "}× {item.quantity}
+          </p>
+
+
         </div>
 
-        {!checkoutResult ? (
-          <>
-            <label style={{ fontWeight: 600, fontSize: '0.85rem', display: 'block', marginBottom: 8 }}>
-              Payment method
-            </label>
+      ))}
 
-            <div style={{ marginBottom: 14 }}>
-              <PaymentMethodSelector value={method} onChange={setMethod} />
-            </div>
+
+
+      {!checkoutResult ? (
+
+        <div className="card-surface">
+
+
+          <h3>
+            Payment Method
+          </h3>
+
+
+          <PaymentMethodSelector
+            value={method}
+            onChange={setMethod}
+          />
+
+
+          <button
+            className="btn-primary"
+            style={{
+              marginTop:20,
+              width:"100%"
+            }}
+            disabled={checkingOut}
+            onClick={checkoutCart}
+          >
+
+          {
+            checkingOut
+            ?
+            "Creating payment..."
+            :
+            "Continue to Payment"
+          }
+
+          </button>
+
+
+        </div>
+
+
+      ) : (
+
+
+        <div className="card-surface">
+
+
+          <h2>
+            Complete Payment
+          </h2>
+
+
+          <p>
+            Amount:
+            {" "}
+            {checkoutResult.combinedTotal}
+          </p>
+
+
+          <p>
+            Pay using:
+            {" "}
+            {method}
+          </p>
+
+
           <div className="field-group">
-  <label>Coupon code</label>
-  <div style={{ display: 'flex', gap: 8 }}>
-    <input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="Enter code" />
-<button type="button" className="btn-secondary" onClick={applyCoupon}>Apply</button>
-  </div>
-  {couponError && <p style={{ color: '#8A2E10', fontSize: '0.78rem', marginTop: 4 }}>{couponError}</p>}
-  {appliedCoupon && <p style={{ color: 'var(--forest)', fontSize: '0.85rem', marginTop: 4 }}>Discount applied: -{appliedCoupon.discount} {cart.items[0]?.currency}</p>}
-</div>
-            <button
-              className="btn-primary"
-              disabled={checkingOut}
-              onClick={checkoutCart}
-            >
-              {checkingOut ? "Processing..." : `Checkout all ${cart.count} item(s)`}
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="alert alert-success">
-              {checkoutResult.message}
-            </div>
 
-            {checkoutResult.checkoutUrl ? (
-              <a href={checkoutResult.checkoutUrl} target="_blank" rel="noreferrer">
-                <button className="btn-primary" type="button">
-                  Continue to {method}
-                </button>
-              </a>
-            ) : (
-              <p style={{ fontSize: '0.8rem', color: '#5B6760' }}>
-                Sandbox mode — reference: {checkoutResult.providerReference}
-              </p>
-            )}
+          <label>
+            Mobile Money Number
+          </label>
 
-            <button
-              className="btn-secondary"
-              style={{ marginTop: 10, width: '100%' }}
-              onClick={confirmPaid}
-            >
-              I've completed payment — move all items to escrow
-            </button>
-          </>
-        )}
+          <input
+            value={phoneNumber}
+            onChange={
+              e=>setPhoneNumber(e.target.value)
+            }
+            placeholder="07XXXXXXXX"
+          />
+
+          </div>
+
+
+
+          <div className="field-group">
+
+          <label>
+            Transaction Reference
+          </label>
+
+
+          <input
+            value={transactionReference}
+            onChange={
+              e=>setTransactionReference(e.target.value)
+            }
+            placeholder="Transaction ID"
+          />
+
+
+          </div>
+
+
+
+          <div className="field-group">
+
+          <label>
+            Payment Screenshot
+          </label>
+
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={
+              e=>setProof(e.target.files[0])
+            }
+          />
+
+
+          </div>
+
+
+
+          <div className="alert alert-success">
+
+          Payment instructions:
+
+          <br/>
+
+          Send money to JEDIDA Marketplace account.
+
+          Wait for verification.
+
+          Your order will then enter escrow.
+
+          </div>
+
+
+
+          <button
+            className="btn-primary"
+            style={{
+              width:"100%"
+            }}
+            onClick={submitPayment}
+          >
+
+          Submit Payment
+
+          </button>
+
+
+        </div>
+
+
+      )}
+
+
       </div>
-    </>
-  )}
-</div>
-</div>
-);
+
+
+    </div>
+
+  );
+
 }

@@ -4,14 +4,16 @@ import client from '../api/client';
 import Logo from './Logo';
 import * as commerceApi from '../api/commerceApi';
 import Icon from './icons/icon';
+import {getUser, isAuthenticated, logout} from "../utils/auth";
+
 export default function MarketplaceHeader() {
   const [ads, setAds] = useState([]);
   const [adIndex, setAdIndex] = useState(0);
   const [user, setUser] = useState(null);
   const [logoOverride, setLogoOverride] = useState(null);
   const [cartCount, setCartCount] = useState(0);
- 
-
+const currentUser = getUser();
+const loggedIn = isAuthenticated();
 useEffect(() => {
   commerceApi.getCart().then(({ data }) => setCartCount(data.count)).catch(() => {});
 }, []);
@@ -61,6 +63,62 @@ useEffect(() => {
           <Link to="/orders" className="btn-link">My Orders</Link>
           {roleLink()}
 
+<div className="flex items-center gap-3">
+
+{
+!loggedIn ? (
+
+<>
+<Link 
+to="/signin"
+className="px-4 py-2 rounded-lg border"
+>
+Sign In
+</Link>
+
+
+<Link
+to="/signup"
+className="px-4 py-2 rounded-lg bg-primary text-white"
+>
+Create Account
+</Link>
+
+</>
+
+) : (
+
+<div className="flex items-center gap-3">
+
+
+<Link
+to="/profile"
+className="font-medium"
+>
+{currentUser?.fullName || "Account"}
+</Link>
+
+
+<span className="text-sm px-2 py-1 rounded bg-gray-100">
+{currentUser?.role || "Buyer"}
+</span>
+
+
+<button
+onClick={logout}
+className="px-3 py-2 rounded-lg border"
+>
+Logout
+</button>
+
+
+</div>
+
+)
+
+}
+
+</div>
       <Link
   to="/cart"
   style={{

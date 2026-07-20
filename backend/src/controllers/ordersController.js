@@ -382,3 +382,72 @@ export async function contactSellerAboutOrder(req, res) {
 
   res.json({ message: 'Message sent to the admin team, who will relay it to the seller.', conversationId: convo.id });
 }
+export async function submitManualPayment(req,res){
+
+  const { checkoutGroupId } = req.params;
+
+  const {
+    phoneNumber,
+    transactionReference,
+    proofImage
+  } = req.body;
+
+
+  try {
+
+    const result = await query(
+      `
+      UPDATE payments p
+      SET
+      status='submitted',
+      payer_phone=$1,
+      transaction_reference=$2,
+      proof_image=$3
+
+      FROM orders o
+
+      WHERE
+      p.order_id=o.id
+      AND o.checkout_group_id=$4
+
+      RETURNING p.*
+      `,
+      [
+        phoneNumber,
+        transactionReference,
+        proofImage,
+        checkoutGroupId
+      ]
+    );
+
+
+    if(result.rows.length===0){
+
+      return res.status(404)
+      .json({
+        error:"Payment not found"
+      });
+
+    }
+
+
+    res.json({
+      message:
+      "Payment submitted for admin verification",
+
+      payments:result.rows
+    });
+
+
+  }catch(err){
+
+    console.error(err);
+
+    res.status(500)
+    .json({
+      error:"Could not submit payment"
+    });
+
+  }
+
+}

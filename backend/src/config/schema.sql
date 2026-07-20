@@ -1,4 +1,4 @@
--- JEDIDA Marketplace — Phase 1 schema
+-- JEDIDIA Marketplace — Phase 1 schema
 -- Foundation: users (buyer -> seller/delivery/admin upgrade path), shops, wallets, KYC, auth tokens
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- gen_random_uuid()
@@ -16,10 +16,12 @@ CREATE TYPE upgrade_status   AS ENUM ('none', 'pending_payment', 'pending_approv
 CREATE TABLE users (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email               VARCHAR(255) UNIQUE NOT NULL,
+    username            VARCHAR(50) UNIQUE,
     password_hash       VARCHAR(255) NOT NULL,
     full_name           VARCHAR(255) NOT NULL,
     phone_number        VARCHAR(32) NOT NULL,
     phone_verified      BOOLEAN NOT NULL DEFAULT FALSE,
+    phone_country_code  VARCHAR(8),
     location_country    VARCHAR(100),
     location_city       VARCHAR(100),
     location_lat        DECIMAL(10,6),
@@ -29,12 +31,32 @@ CREATE TABLE users (
     status              account_status NOT NULL DEFAULT 'active',
     kyc_status          kyc_status NOT NULL DEFAULT 'not_submitted',
     avatar_url          TEXT,
+    google_id           VARCHAR(255) UNIQUE,
+    locked_until        TIMESTAMPTZ,
+    failed_login_count  INTEGER NOT NULL DEFAULT 0,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_role ON users(primary_role);
+CREATE INDEX idx_users_google_id ON users(google_id);
+
+-- ===== PENDING REGISTRATIONS =====
+CREATE TABLE pending_registrations (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name           VARCHAR(255) NOT NULL,
+    email               VARCHAR(255) NOT NULL,
+    phone_number        VARCHAR(32) NOT NULL,
+    token_hash          VARCHAR(255) NOT NULL,
+    expires_at          TIMESTAMPTZ NOT NULL,
+    used                BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_pending_registrations_email ON pending_registrations(email);
+CREATE INDEX idx_pending_registrations_token ON pending_registrations(token_hash);
 
 -- ===== ROLE UPGRADES (buyer -> seller / delivery) =====
 -- Every upgrade requires the 1000 (platform currency unit) mobile money
@@ -44,6 +66,7 @@ CREATE TABLE role_upgrades (
     user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     requested_role      user_role NOT NULL CHECK (requested_role IN ('seller','delivery')),
     status              upgrade_status NOT NULL DEFAULT 'none',
+    application_data    JSONB DEFAULT '{}',
     verification_fee_paid BOOLEAN NOT NULL DEFAULT FALSE,
     verification_fee_amount NUMERIC(12,2) NOT NULL DEFAULT 1000,
     payment_reference   VARCHAR(255),
@@ -89,6 +112,8 @@ CREATE TABLE shops (
     subscription_active BOOLEAN NOT NULL DEFAULT FALSE,
     subscription_plan   VARCHAR(50),
     subscription_expires_at TIMESTAMPTZ,
+    primary_category    VARCHAR(50) DEFAULT 'other',
+    currency            VARCHAR(10) DEFAULT 'USD',
     status              account_status NOT NULL DEFAULT 'pending',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -101,7 +126,7 @@ CREATE TYPE wallet_type AS ENUM ('user', 'platform', 'escrow');
 
 CREATE TABLE wallets (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id            UUID REFERENCES users(id) ON DELETE CASCADE, -- NULL for platform/escrow pool wallets
+    owner_id            UUID REFERENCES users(id) ON DELETE CASCADE,
     type                wallet_type NOT NULL DEFAULT 'user',
     balance             NUMERIC(14,2) NOT NULL DEFAULT 0,
     currency            VARCHAR(10) NOT NULL DEFAULT 'USD',
@@ -113,7 +138,8 @@ CREATE INDEX idx_wallets_owner ON wallets(owner_id);
 
 -- one platform wallet and one escrow pool wallet seeded on migration
 INSERT INTO wallets (owner_id, type, balance, currency)
-VALUES (NULL, 'platform', 0, 'USD'), (NULL, 'escrow', 0, 'USD');
+VALUES (NULL, 'platform', 0, 'USD'), (NULL, 'escrow', 0, 'USD')
+ON CONFLICT DO NOTHING;
 
 -- ===== AUTH TOKENS =====
 CREATE TABLE password_reset_tokens (

@@ -58,7 +58,8 @@ function EditProfileForm({ user, onDone, onCancel }) {
       {error && <div className="alert alert-error">{error}</div>}
       <div className="field-group"><label>Full name</label><input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
       <div className="field-group"><label>Avatar URL</label><input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://…" /></div>
-      <div className="field-group"><label>Cover image URL</label><input value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} placeholder="https://…" /></div>
+      <div className="field-group"><label>Cover image URL</label><input value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} 
+placeholder="https://…" /></div>
       <div className="field-group">
         <label>Bio ({bio.length}/500)</label>
         <textarea rows={3} value={bio} onChange={(e) => setBio(e.target.value.slice(0, 500))} />
@@ -202,7 +203,12 @@ export default function MyProfile() {
               {(user.location_city || user.location_country) && ` · ${[user.location_city, user.location_country].filter(Boolean).join(', ')}`}
             </div>
           </div>
-          {!editing && <button className="btn-secondary" onClick={() => setEditing(true)}>Edit profile</button>}
+          {!editing && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link to="/account/security" className="btn-secondary">Security settings</Link>
+              <button className="btn-secondary" onClick={() => setEditing(true)}>Edit profile</button>
+            </div>
+          )}
         </div>
 
         {user.bio && !editing && <p style={{ color: '#5B6760', maxWidth: 640, marginBottom: 20 }}>{user.bio}</p>}

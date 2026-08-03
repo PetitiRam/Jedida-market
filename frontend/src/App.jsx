@@ -41,6 +41,7 @@ import KycWizard from './pages/kyc/KycWizard';
 import MyQuoteRequests from './pages/buyer/MyQuoteRequests';
 import MyAgreements from './pages/buyer/MyAgreements';
 import MyProfile from './pages/MyProfile';
+import AccountSecurity from './pages/AccountSecurity';
 import PublicProfile from './pages/PublicProfile';
 import MySupplyContracts from './pages/buyer/MySupplyContracts';
 import OrderTracking from './pages/buyer/OrderTracking';
@@ -131,6 +132,7 @@ export default function App() {
         <Route path="/my-agreements" element={<ProtectedRoute><MyAgreements /></ProtectedRoute>} />
         <Route path="/my-supply-contracts" element={<ProtectedRoute><MySupplyContracts /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
+        <Route path="/account/security" element={<ProtectedRoute><AccountSecurity /></ProtectedRoute>} />
         <Route path="/u/:userId" element={<PublicProfile />} />
 
         {/* Jedida Stays — Phase A */}

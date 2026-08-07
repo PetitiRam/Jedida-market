@@ -74,6 +74,7 @@ import growthRoutes from './routes/growth.js';
 import { publicRouter as marketplaceLayoutRoutes, adminRouter as marketplaceBuilderRoutes } from './routes/marketplaceBuilder.js';
 import securityOpsRoutes from './routes/securityOps.js';
 import paymentWebhookRoutes from './routes/paymentWebhooks.js';
+import sitemapRoutes from './routes/sitemap.js';
 import { runSupplyContractCycleSweep } from './controllers/agricultureController.js';
 import { runFullTrustAndProtectionSweep } from './services/trustEngineService.js';
 import { autoReleaseExpiredEscrow } from './controllers/ordersController.js';
@@ -266,6 +267,9 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/admin/kyc-review', adminKycReviewRoutes);
 app.use('/api/admin/settings-center', settingsCenterRoutes);
 app.use('/api/settings', publicSettingsCenterRoutes);
+// Mounted at root (not /api) so it serves at api.jedida-market.com/sitemap.xml —
+// see backend/src/routes/sitemap.js for how to point the root domain at it.
+app.use(sitemapRoutes);
 app.use("/api/admin/payments", adminPaymentsRoutes);
 // Legacy direct buyer<->seller Q&A endpoint retired (2026-08) — no shipped
 // client called it, and it let a seller answer a buyer directly,
@@ -432,7 +436,8 @@ if (process.env.VERIFIED_SHOP_SWEEP_DISABLED !== 'true') {
   const runTrustSweep = async () => {
     try {
       const { engineSummary, protectionSummary } = await runFullTrustAndProtectionSweep();
-      console.log(`✅ Verified Shop sweep: ${engineSummary.checked} shop(s) checked, ${engineSummary.granted} newly verified, ${engineSummary.revoked} revoked. AI Protection: ${protectionSummary.signalsRaised} risk signal(s), ${protectionSummary.flagsRaised} fraud flag(s) raised.`);
+      console.log(`✅ Verified Shop sweep: ${engineSummary.checked} shop(s) checked, ${engineSummary.granted} newly verified, ${engineSummary.revoked} revoked. AI 
+Protection: ${protectionSummary.signalsRaised} risk signal(s), ${protectionSummary.flagsRaised} fraud flag(s) raised.`);
     } catch (err) {
       console.error('✅ Verified Shop sweep failed:', err);
     }

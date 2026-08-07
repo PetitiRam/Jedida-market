@@ -4,6 +4,18 @@ import { logSecurityEvent } from '../services/securityLogService.js';
 const slugify = (text) =>
   text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+// Computed fresh on every read instead of trusting the `share_link` column
+// stored at creation time — that stored value goes stale the moment
+// PUBLIC_API_URL changes (a domain migration, a new backend host, etc.),
+// silently leaving every existing shop's share link broken until someone
+// notices. Recomputing here means every shop self-heals automatically the
+// next time it's fetched, with no manual database fix-up ever needed.
+function withFreshShareLink(shop) {
+  if (!shop) return shop;
+  const backendUrl = process.env.PUBLIC_API_URL || `http://localhost:${process.env.PORT || 5000}`;
+  return { ...shop, share_link: `${backendUrl}/shop/${shop.slug}` };
+}
+
 async function uniqueSlug(base) {
   let slug = slugify(base) || 'shop';
   let attempt = 0;
@@ -99,7 +111,7 @@ export async function getMyShop(req, res) {
   try {
     const result = await query('SELECT * FROM shops WHERE owner_id = $1', [req.user.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'No shop found for your account yet.' });
-    return res.json({ shop: result.rows[0] });
+    return res.json({ shop: withFreshShareLink(result.rows[0]) });
   } catch (err) {
     console.error('Get my shop error:', err);
     return res.status(500).json({ error: 'Could not load your shop.' });
@@ -121,7 +133,7 @@ export async function updateMyShop(req, res) {
       [name, description, logoUrl, bannerUrl, primaryCategory, currency, req.user.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'No shop found for your account.' });
-    return res.json({ message: 'Shop updated.', shop: result.rows[0] });
+    return res.json({ message: 'Shop updated.', shop: withFreshShareLink(result.rows[0]) });
   } catch (err) {
     console.error('Update shop error:', err);
     return res.status(500).json({ error: 'Could not update shop.' });
@@ -148,7 +160,7 @@ export async function getPublicShopBySlug(req, res) {
       [shop.id]
     );
 
-    return res.json({ shop, products: productsResult.rows });
+    return res.json({ shop: withFreshShareLink(shop), products: productsResult.rows });
   } catch (err) {
     console.error('Get public shop error:', err);
     return res.status(500).json({ error: 'Could not load shop.' });
@@ -329,7 +341,7 @@ query(
 
     return res.json({
       shop: {
-        ...shop,
+        ...withFreshShareLink(shop),
         rating: Number(ratingResult.rows[0].average),
         reviewCount: Number(ratingResult.rows[0].count),
         productsSold: Number(soldResult.rows[0].total),

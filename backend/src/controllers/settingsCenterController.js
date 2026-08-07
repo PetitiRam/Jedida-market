@@ -22,6 +22,7 @@ export async function getPublicPaymentSettings(req, res) {
       enableCash: !!value.enableCash,
       enableCardPayments: !!value.enableCardPayments,
       mobileMoneyNumber: value.mobileMoneyNumber || null,
+      alternativeMobileNumber: value.alternativeMobileNumber || null,
       bankName: value.bankName || null,
       bankAccount: value.bankAccount || null,
       accountName: value.accountName || null,

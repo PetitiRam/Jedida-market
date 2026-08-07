@@ -11,12 +11,13 @@ import AdminChatConnect from "../../components/payment/AdminChatConnect";
 import Icon from "../../components/icons/icon";
 import "../../styles/payment-forms.css";
 
-// Static merchant receiving details shown to the buyer for each manual
-// payment method — display-only, matches what ManualPaymentInstructions
-// previously hard-coded.
-const MERCHANT_INFO = {
-  mtn_mobile_money: { label: "MTN Mobile Money", number: "0770 123 456" },
-  airtel_money: { label: "Airtel Money", number: "0750 123 456" }
+// Merchant receiving details are pulled live from Admin → Settings →
+// Payment (see loadPaymentSettings below) instead of being hard-coded here,
+// so an admin changing the mobile money number takes effect immediately
+// for every buyer at checkout — no redeploy needed.
+const PAYMENT_METHOD_LABELS = {
+  mtn_mobile_money: "MTN Mobile Money",
+  airtel_money: "Airtel Money"
 };
 
 export default function PaymentCenter() {
@@ -41,6 +42,17 @@ export default function PaymentCenter() {
   const [submittedPayment, setSubmittedPayment] = useState(null);
 
   const [orderSummary, setOrderSummary] = useState(null);
+
+  // Live merchant payment details from Admin → Settings → Payment. Public,
+  // unauthenticated endpoint — see GET /admin/settings-center/public/payment-methods.
+  const [paymentSettings, setPaymentSettings] = useState(null);
+  const [paymentSettingsError, setPaymentSettingsError] = useState(false);
+
+  useEffect(() => {
+    client.get("/admin/settings-center/public/payment-methods")
+      .then(({ data }) => setPaymentSettings(data))
+      .catch(() => setPaymentSettingsError(true));
+  }, []);
 
   // Read-only receipt fetch purely to populate the order summary card.
   // Uses the existing GET /orders/:orderId/receipt endpoint — no new API,
@@ -100,7 +112,18 @@ export default function PaymentCenter() {
     }
   };
 
-  const merchant = MERCHANT_INFO[method];
+  // Map the selected method to the right number from admin settings. MTN
+  // uses the primary mobile money number; Airtel uses the alternative
+  // number (falls back to the primary if no alternative is set).
+  const merchantNumber = paymentSettings && paymentSettings.enableMobileMoney
+    ? (method === "airtel_money"
+        ? (paymentSettings.alternativeMobileNumber || paymentSettings.mobileMoneyNumber)
+        : paymentSettings.mobileMoneyNumber)
+    : null;
+  const merchant = merchantNumber
+    ? { label: PAYMENT_METHOD_LABELS[method] || method, number: merchantNumber }
+    : null;
+  const merchantAccountName = paymentSettings?.accountName || "Jedida Marketplace Ltd";
   const amountDue = submittedPayment?.amount ?? orderSummary?.total;
   const currency = submittedPayment?.currency || orderSummary?.currency || "UGX";
 
@@ -145,6 +168,12 @@ export default function PaymentCenter() {
 
               <PaymentMethodSelector value={method} onChange={setMethod} />
 
+              {paymentSettingsError && (
+                <div className="alert alert-error" style={{ marginTop: 12 }}>
+                  Could not load payment details. Please refresh the page or try again shortly.
+                </div>
+              )}
+
               {merchant && (
                 <>
                   <div style={{ height: 28 }} />
@@ -153,7 +182,8 @@ export default function PaymentCenter() {
 
                   <div className="jp-instructions-banner">
                     <Icon name="alertCircle" size={16} />
-                    <span>Send the exact amount to the merchant number below, then enter your own mobile money number and the transaction reference it gave you.</span>
+                    <span>Send the exact amount to the merchant number below, then enter your own mobile money number and the transaction reference it gave 
+you.</span>
                   </div>
 
                   <div className="jp-detail-grid">
@@ -164,7 +194,7 @@ export default function PaymentCenter() {
                     <CopyField label="Merchant Number" value={merchant.number} />
                     <div className="jp-detail-row">
                       <div className="jp-detail-label">Account Name</div>
-                      <div className="jp-detail-value">Jedida Marketplace Ltd</div>
+                      <div className="jp-detail-value">{merchantAccountName}</div>
                     </div>
                     <div className="jp-detail-row">
                       <div className="jp-detail-label">Amount to Pay</div>
